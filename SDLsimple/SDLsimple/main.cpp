@@ -60,11 +60,16 @@ GLuint g_paddle_texture_id,
 const glm::vec3 PADDLE1_INIT_POS = glm::vec3(-4.8f,0.0f,1.0f);
 glm::vec3 paddle1_position = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 paddle1_movement = glm::vec3(0.0f, 0.0f, 0.0f);
+bool paddle1_at_top = false;
+bool paddle1_at_bot = false;
 
 const glm::vec3 PADDLE2_INIT_POS = glm::vec3(4.8f,0.0f,1.0f);
 glm::vec3 paddle2_position  = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 paddle2_movement  = glm::vec3(0.0f, 0.0f, 0.0f);
 bool allow_movement = true;
+bool paddle2_at_top = false;
+bool paddle2_at_bot = false;
+bool up = true;
 float g_player_speed = 4.0f;
 
 GLuint load_texture(const char* filepath)
@@ -168,11 +173,11 @@ void process_input()
     const Uint8 *key_state = SDL_GetKeyboardState(NULL);
 
     
-    if (key_state[SDL_SCANCODE_UP])
+    if (key_state[SDL_SCANCODE_UP] and !paddle1_at_top)
     {
         paddle1_movement.y = 1.0f;
     }
-    else if (key_state[SDL_SCANCODE_DOWN])
+    else if (key_state[SDL_SCANCODE_DOWN] and !paddle1_at_bot)
     {
         paddle1_movement.y = -1.0f;
     }
@@ -180,6 +185,19 @@ void process_input()
     if (glm::length(paddle1_movement) > 1.0f)
     {
         paddle1_movement = glm::normalize(paddle1_movement);
+    }
+    
+    if(paddle1_position.y > 2.6f){
+        paddle1_at_top = true;
+    }
+    else{
+        paddle1_at_top = false;
+    }
+    if(paddle1_position.y < -2.9f){
+        paddle1_at_bot = true;
+    }
+    else{
+        paddle1_at_bot = false;
     }
 }
 
@@ -219,16 +237,16 @@ void process_input_2()
     const Uint8 *key_state = SDL_GetKeyboardState(NULL);
 
     
-    if (key_state[SDL_SCANCODE_W])
+    if (key_state[SDL_SCANCODE_W] and !paddle2_at_top)
     {
         paddle2_movement.y = 1.0f;
     }
-    else if (key_state[SDL_SCANCODE_S])
+    else if (key_state[SDL_SCANCODE_S] and !paddle2_at_bot)
     {
         paddle2_movement.y = -1.0f;
     }
     if(key_state[SDL_SCANCODE_T]){
-        allow_movement = false;
+        allow_movement = !allow_movement;
     }
     
     if (glm::length(paddle2_movement) > 1.0f)
@@ -236,8 +254,36 @@ void process_input_2()
         paddle2_movement = glm::normalize(paddle2_movement);
     }
     
+    if(paddle2_position.y > 2.6f){
+        paddle2_at_top = true;
+    }
+    else{
+        paddle2_at_top = false;
+    }
+    if(paddle2_position.y < -2.9f){
+        paddle2_at_bot = true;
+    }
+    else{
+        paddle2_at_bot = false;
+    }
+
 }
 
+void paddle2_up_down(){
+    if(up){
+        paddle2_movement.y = 1.0f;
+    }
+    else{
+        paddle2_movement.y = -1.0f;
+    }
+    if(paddle2_position.y >2.6f){
+        up = false;
+    }
+    else if(paddle2_position.y < -2.9f){
+        up = true;
+    }
+    
+}
 
 // ————————————————————————— NEW STUFF ———————————————————————————— //
 bool check_collision(glm::vec3 &position_a, glm::vec3 &position_b)  //
@@ -330,10 +376,10 @@ int main(int argc, char* argv[])
     {
         process_input();
         if(allow_movement){
-            std::cout<< "hello";
             process_input_2();
         }else{
-            
+            std::cout << "pp";
+            paddle2_up_down();
         }
        
         update();
