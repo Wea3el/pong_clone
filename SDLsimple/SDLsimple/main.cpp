@@ -52,11 +52,13 @@ ShaderProgram g_shader_program;
 glm::mat4     g_view_matrix,
               g_paddle1_matrix,
               g_projection_matrix,
-              g_paddle2_matrix;
+              g_paddle2_matrix,
+              g_ball_matrix;
 
 GLuint g_paddle_texture_id,
        g_other_texture_id;
 
+const glm::vec3 PADDLE_INIT_SCAL = glm::vec3(0.8f,0.2f,0.0f);
 const glm::vec3 PADDLE1_INIT_POS = glm::vec3(-4.8f,0.0f,1.0f);
 glm::vec3 paddle1_position = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 paddle1_movement = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -69,8 +71,20 @@ glm::vec3 paddle2_movement  = glm::vec3(0.0f, 0.0f, 0.0f);
 bool allow_movement = true;
 bool paddle2_at_top = false;
 bool paddle2_at_bot = false;
-bool up = true;
+bool go_up = true;
+
+glm::vec3 ball_position = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 ball_movement = glm::vec3(0.0f, 0.0f, 0.0f);
+const glm::vec3 BALL_INIT_SCAL = glm::vec3(0.2f, 0.2f,0.0f);
+bool beginning = true;
+bool left = false,
+    right = true,
+    up = true,
+    down = false;
+
+bool start = false;
 float g_player_speed = 4.0f;
+float ball_speed = 2.0f;
 
 GLuint load_texture(const char* filepath)
 {
@@ -119,6 +133,9 @@ void initialise()
     g_paddle1_matrix = glm::mat4(1.0f);
     
     g_paddle2_matrix = glm::mat4(1.0f);
+    
+    g_ball_matrix = glm::mat4(1.0f);
+    
 //    g_paddle2_matrix = glm::translate(g_paddle2_matrix, glm::vec3(1.0f, 1.0f, 0.0f));
 //
 //    paddle2_position    += paddle2_movement;
@@ -160,6 +177,10 @@ void process_input()
                     case SDLK_q:
                         g_game_is_running = false;
                         break;
+                    
+                    case SDLK_m:
+                        start = true;
+                        break;
                         
                     default:
                         break;
@@ -187,7 +208,7 @@ void process_input()
         paddle1_movement = glm::normalize(paddle1_movement);
     }
     
-    if(paddle1_position.y > 2.6f){
+    if(paddle1_position.y > 2.8f){
         paddle1_at_top = true;
     }
     else{
@@ -225,6 +246,9 @@ void process_input_2()
                     case SDLK_t:
                         allow_movement = false;
                         break;
+                        
+                    
+                        
                     default:
                         break;
                 }
@@ -254,7 +278,7 @@ void process_input_2()
         paddle2_movement = glm::normalize(paddle2_movement);
     }
     
-    if(paddle2_position.y > 2.6f){
+    if(paddle2_position.y > 2.8f){
         paddle2_at_top = true;
     }
     else{
@@ -270,31 +294,112 @@ void process_input_2()
 }
 
 void paddle2_up_down(){
-    if(up){
+    if(go_up){
         paddle2_movement.y = 1.0f;
     }
     else{
         paddle2_movement.y = -1.0f;
     }
-    if(paddle2_position.y >2.6f){
-        up = false;
+    if(paddle2_position.y >2.8f){
+        go_up = false;
     }
     else if(paddle2_position.y < -2.9f){
-        up = true;
+        go_up = true;
     }
     
 }
-
-// ————————————————————————— NEW STUFF ———————————————————————————— //
-bool check_collision(glm::vec3 &position_a, glm::vec3 &position_b)  //
+bool check_collision_1(glm::vec3 &position_a, glm::vec3 &position_b, const glm::vec3 &init_pos)  //
 {                                                                   //
-    // —————————————————  Distance Formula ———————————————————————— //
-    return sqrt(                                                    //
-                pow(position_b[0] - position_a[0], 2) +             //
-                pow(position_b[1] - position_b[1], 2)               //
-            ) < MINIMUM_COLLISION_DISTANCE;                         //
-}                                                                   //
-// ———————————————————————————————————————————————————————————————— //
+    // —————————————————  Distance Formula ————————————————————————
+    
+    float x_distance = fabs(position_a.x - init_pos.x) - ((BALL_INIT_SCAL.x*0.09 + PADDLE_INIT_SCAL.x * 0.09) / 2.0f);
+    float y_distance = fabs(position_a.y - position_b.y) - ((BALL_INIT_SCAL.y*2.5f + PADDLE_INIT_SCAL.y*2.5f) / 2.0f);
+
+    if (x_distance < 0 && y_distance <= 0){
+        return true;
+    }
+    else{
+        return false;
+    }//
+    // ———————————————————————————————————————————————————————————————— //
+}
+bool check_collision_2(glm::vec3 &position_a, glm::vec3 &position_b, const glm::vec3 &init_pos)  //
+{                                                                   //
+    // —————————————————  Distance Formula ————————————————————————
+    
+    float x_distance = fabs(position_a.x - init_pos.x) - ((BALL_INIT_SCAL.x*0.09 + PADDLE_INIT_SCAL.x * 0.15) / 2.0f);
+    float y_distance = fabs(position_a.y - position_b.y) - ((BALL_INIT_SCAL.y*2.5f + PADDLE_INIT_SCAL.y*2.5f) / 2.0f);
+//    std::cout << position_a.x <<" "<< init_pos.x << " \n";
+    std::cout << x_distance << " " << y_distance << " \n";
+//    std::cout << position_a.y << " " << position_b.y<< " \n";
+    if (x_distance < 0 && y_distance <= 0){
+        return true;
+    }
+    else{
+        return false;
+    }//
+    // ———————————————————————————————————————————————————————————————— //
+}
+
+
+void ball_direction(){
+    ball_movement = glm::vec3(0.0f);
+    
+    if(check_collision_1(ball_position, paddle1_position, PADDLE1_INIT_POS)){
+        std::cout << "paddle1\n";
+        right = false;
+        left = true;
+        if(paddle1_position.y >0.0f){
+            up = true;
+            down = false;
+        }else{
+            up = false;
+            down = true;
+        }
+    }
+    else if(check_collision_2(ball_position, paddle2_position, PADDLE2_INIT_POS)){
+        std::cout << "paddle2\n";
+        right = true;
+        left = false;
+        if(paddle2_position.y > 0.0f){
+            up = true;
+            down = false;
+        }else{
+            up = false;
+            down = true;
+        }
+    }
+    if(ball_position.y > 3.5f){
+        
+        up = false;
+        down = true;
+    }else if(ball_position.y < -3.5f){
+        up = true;
+        down = false;
+    }
+    
+    if(left){
+        ball_movement.x = 1;
+    }
+    else if(right){
+        ball_movement.x = -1;
+    }else{
+        ball_movement.x = 1;
+    }
+    if(up){
+        
+        ball_movement.y = 0.5;
+    }else if(down){
+        ball_movement.y = -0.5;
+    }else{
+        
+        ball_movement.y = 0.5;
+    }
+    
+    
+    
+}
+// ————————————————————————— NEW STUFF ———————————————————————————— //
 
 
 void update()
@@ -303,13 +408,13 @@ void update()
     float delta_time = ticks - g_previous_ticks;
     g_previous_ticks = ticks;
 
-    g_paddle1_matrix     = glm::mat4(1.0f);
+    g_paddle1_matrix     =glm::mat4(1.0f);
     g_paddle1_matrix = glm::translate(g_paddle1_matrix, PADDLE1_INIT_POS);
     paddle1_position += paddle1_movement * g_player_speed * delta_time;
     
     g_paddle1_matrix     = glm::translate(g_paddle1_matrix, paddle1_position);
     g_paddle1_matrix = glm:: rotate(g_paddle1_matrix, ANGLE, glm::vec3(0.0f,0.0f,1.0f));
-    g_paddle1_matrix = glm::scale(g_paddle1_matrix, glm::vec3(0.8f,0.2f,0.0f));
+    g_paddle1_matrix = glm::scale(g_paddle1_matrix, PADDLE_INIT_SCAL);
     
     g_paddle2_matrix     = glm::mat4(1.0f);
     g_paddle2_matrix = glm::translate(g_paddle2_matrix, PADDLE2_INIT_POS);
@@ -317,13 +422,14 @@ void update()
     
     g_paddle2_matrix     = glm::translate(g_paddle2_matrix, paddle2_position);
     g_paddle2_matrix = glm:: rotate(g_paddle2_matrix, ANGLE, glm::vec3(0.0f,0.0f,1.0f));
-    g_paddle2_matrix = glm::scale(g_paddle2_matrix, glm::vec3(0.8f,0.2f,0.0f));
+    g_paddle2_matrix = glm::scale(g_paddle2_matrix, PADDLE_INIT_SCAL);
 
-    // —————————————————————— NEW STUFF ——————————————————————— //
-    if (check_collision(paddle1_position, paddle2_position))   //
-    {                                                           //
-        std::cout << std::time(nullptr) << ": Collision.\n";    //
-    }                                                           //
+    
+    g_ball_matrix = glm::mat4(1.0f);
+    ball_position += ball_movement * ball_speed * delta_time;
+    g_ball_matrix = glm::translate(g_ball_matrix, ball_position);
+    g_ball_matrix = glm::scale(g_ball_matrix, BALL_INIT_SCAL);
+
     // —————————————————————————————————————————————————————————//
 }
 
@@ -340,8 +446,8 @@ void render_paddle()
     glClear(GL_COLOR_BUFFER_BIT);
     
     float vertices[] = {
-        -0.5f, -0.5f, 1.0f, -0.5f, 1.0f, 0.5f,
-        -0.5f, -0.5f, 1.0f, 0.5f, -0.5f, 0.5f
+        -0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f,
+        -0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f
     };
 
     float texture_coordinates[] = {
@@ -357,6 +463,7 @@ void render_paddle()
     
     draw_object(g_paddle1_matrix, g_paddle_texture_id);
     draw_object(g_paddle2_matrix, g_paddle_texture_id);
+    draw_object(g_ball_matrix, g_other_texture_id);
     
     glDisableVertexAttribArray(g_shader_program.get_position_attribute());
     glDisableVertexAttribArray(g_shader_program.get_tex_coordinate_attribute());
@@ -374,14 +481,19 @@ int main(int argc, char* argv[])
     
     while (g_game_is_running)
     {
+        
         process_input();
         if(allow_movement){
             process_input_2();
         }else{
-            std::cout << "pp";
             paddle2_up_down();
         }
-       
+        if(start){
+            std::cout << "start";
+            ball_direction();
+        }
+        
+        
         update();
         render_paddle();
     }
