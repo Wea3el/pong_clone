@@ -36,12 +36,14 @@ const char  V_SHADER_PATH[]          = "shaders/vertex_textured.glsl",
             F_SHADER_PATH[]          = "shaders/fragment_textured.glsl",
             PLAYER_SPRITE_FILEPATH[] = "assets/rectangle.png",
             WIN1_SPRITE_FILEPATH[] = "assets/winner-1.png",
-WIN2_SPRITE_FILEPATH[] = "assets/winner-2.png";
+WIN2_SPRITE_FILEPATH[] = "assets/winner-2.png",
+BALL_SPRITE_FILEPATH[] = "assets/ballkirby.png";
 
 
 const float MILLISECONDS_IN_SECOND     = 1000.0;
 const float MINIMUM_COLLISION_DISTANCE = 1.0f;
-const float ANGLE = glm::radians(90.0f);
+const float ANGLE = glm::radians(90.0f);\
+const float ROT_SPEED = 200.0f;
 
 const int   NUMBER_OF_TEXTURES = 1;
 const GLint LEVEL_OF_DETAIL    = 0;
@@ -63,7 +65,8 @@ glm::mat4     g_view_matrix,
 GLuint g_paddle_texture_id,
        g_other_texture_id,
        g_player1_win_id,
-       g_player2_win_id;
+       g_player2_win_id,
+       g_ball_texture_id;
 
 const glm::vec3 PADDLE_INIT_SCAL = glm::vec3(0.8f,0.2f,0.0f);
 const glm::vec3 PADDLE1_INIT_POS = glm::vec3(-4.8f,0.0f,1.0f);
@@ -82,20 +85,24 @@ bool go_up = true;
 
 glm::vec3 ball_position = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 ball_movement = glm::vec3(0.0f, 0.0f, 0.0f);
-const glm::vec3 BALL_INIT_SCAL = glm::vec3(0.2f, 0.2f,0.0f);
+const glm::vec3 BALL_INIT_SCAL = glm::vec3(0.3f, 0.3f,0.0f);
 bool beginning = true;
 bool left = false,
-    right = true,
-    up = true,
+    right = false,
+    up = false,
     down = false;
-
-
+float x_speed = 0.0f;
+float y_speed = 0.0f;
+bool bool_rand_up = false;
 
 bool start = false;
 float g_player_speed = 4.0f;
 float ball_speed = 2.0f;
 bool player1_wins = false;
 bool player2_wins = false;
+float g_rot_angle = 0.0f;
+
+
 GLuint load_texture(const char* filepath)
 {
     int width, height, number_of_components;
@@ -162,7 +169,7 @@ void initialise()
     g_projection_matrix = glm::ortho(-5.0f, 5.0f, -3.75f, 3.75f, -1.0f, 1.0f);
     
     g_paddle_texture_id = load_texture(PLAYER_SPRITE_FILEPATH);
-    g_other_texture_id  = load_texture(PLAYER_SPRITE_FILEPATH);
+    g_ball_texture_id = load_texture(BALL_SPRITE_FILEPATH);
     g_player1_win_id = load_texture(WIN1_SPRITE_FILEPATH);
     g_player2_win_id = load_texture(WIN2_SPRITE_FILEPATH);
     
@@ -228,7 +235,7 @@ void process_input()
         paddle1_movement = glm::normalize(paddle1_movement);
     }
     
-    if(paddle1_position.y > 2.8f){
+    if(paddle1_position.y > 3.0f){
         paddle1_at_top = true;
     }
     else{
@@ -298,7 +305,7 @@ void process_input_2()
         paddle2_movement = glm::normalize(paddle2_movement);
     }
     
-    if(paddle2_position.y > 2.8f){
+    if(paddle2_position.y > 3.0f){
         paddle2_at_top = true;
     }
     else{
@@ -320,7 +327,7 @@ void paddle2_up_down(){
     else{
         paddle2_movement.y = -1.0f;
     }
-    if(paddle2_position.y >2.8f){
+    if(paddle2_position.y >3.0f){
         go_up = false;
     }
     else if(paddle2_position.y < -2.9f){
@@ -333,7 +340,7 @@ bool check_collision_1(glm::vec3 &position_a, glm::vec3 &position_b, const glm::
 {                                                                   //
     // —————————————————  Distance Formula ————————————————————————
     
-    float x_distance = fabs(position_a.x - init_pos.x) - ((BALL_INIT_SCAL.x*0.09 + PADDLE_INIT_SCAL.x * 0.09) / 2.0f);
+    float x_distance = fabs(position_a.x - init_pos.x) - ((BALL_INIT_SCAL.x*0.45 + PADDLE_INIT_SCAL.x * 0.45) / 2.0f);
     float y_distance = fabs(position_a.y - position_b.y) - ((BALL_INIT_SCAL.y*2.5f + PADDLE_INIT_SCAL.y*2.5f) / 2.0f);
 
     if (x_distance < 0 && y_distance <= 0){
@@ -346,33 +353,49 @@ bool check_collision_1(glm::vec3 &position_a, glm::vec3 &position_b, const glm::
 }
 
 
-
+bool rand_up_or_down(){
+    double rand_up = ((double)rand()) / double(RAND_MAX)+0.5;
+    return rand_up >=1;
+}
 void ball_direction(){
     ball_movement = glm::vec3(0.0f);
+    
+    
     
     if(check_collision_1(ball_position, paddle1_position, PADDLE1_INIT_POS)){
         right = false;
         left = true;
-        if(paddle1_position.y >0.0f){
+        x_speed = ((float)rand()) / ((float)RAND_MAX) + 1.0;
+        y_speed = ((float)rand()) / ((float)RAND_MAX)/2.0 + 0.5;
+        
+        bool_rand_up = rand_up_or_down();
+        if(bool_rand_up){
             up = true;
             down = false;
         }else{
             up = false;
             down = true;
         }
+
     }
     else if(check_collision_1(ball_position, paddle2_position, PADDLE2_INIT_POS)){
         right = true;
         left = false;
-        if(paddle2_position.y > 0.0f){
+        x_speed = ((float)rand()) / ((float)RAND_MAX) + 1.0;
+        y_speed = ((float)rand()) / ((float)RAND_MAX)/2.0 + 0.5;
+        bool_rand_up = rand_up_or_down();
+        if(bool_rand_up){
             up = true;
             down = false;
         }else{
             up = false;
             down = true;
         }
+        
+
+
     }
-    if(ball_position.y > 3.5f){
+    if(ball_position.y > 3.7f){
         
         up = false;
         down = true;
@@ -382,19 +405,19 @@ void ball_direction(){
     }
     
     if(left){
-        ball_movement.x = 1;
+        ball_movement.x = x_speed;
     }
     else if(right){
-        ball_movement.x = -1;
+        ball_movement.x = -x_speed;
     }else{
         ball_movement.x = 1;
     }
     if(up){
-        ball_movement.y = 0.5;
+        ball_movement.y = y_speed;
     }else if(down){
-        ball_movement.y = -0.5;
+        ball_movement.y = -y_speed;
     }else{
-        ball_movement.y = 0.5;
+        ball_movement.y = 0.0f;
     }
     if(ball_position.x < -5.0){
         std::cout << "player 2 wins\n";
@@ -405,6 +428,7 @@ void ball_direction(){
         std::cout << "player 1 wins\n";
         player1_wins = true;
     }
+    std::cout << "bool up or down:" << bool_rand_up << "\n";
     
     
     
@@ -439,7 +463,9 @@ void update()
     ball_position += ball_movement * ball_speed * delta_time;
     g_ball_matrix = glm::translate(g_ball_matrix, ball_position);
     g_ball_matrix = glm::scale(g_ball_matrix, BALL_INIT_SCAL);
-
+    
+    g_rot_angle += ROT_SPEED *delta_time;
+    g_ball_matrix = glm::rotate(g_ball_matrix, glm::radians(g_rot_angle), glm::vec3(0.0f,0.0f,1.0f));
     // —————————————————————————————————————————————————————————//
 }
 
@@ -473,7 +499,7 @@ void render_paddle()
     
     draw_object(g_paddle1_matrix, g_paddle_texture_id);
     draw_object(g_paddle2_matrix, g_paddle_texture_id);
-    draw_object(g_ball_matrix, g_other_texture_id);
+    draw_object(g_ball_matrix, g_ball_texture_id);
     if(player1_wins){
         draw_object(g_player1_win_matrix, g_player1_win_id);
     }else if(player2_wins){
@@ -508,12 +534,9 @@ int main(int argc, char* argv[])
         if(start && !player1_wins && !player2_wins){
             ball_direction();
         }
-        
         update();
         render_paddle();
     }
-    
-    
     
     shutdown();
     return 0;
