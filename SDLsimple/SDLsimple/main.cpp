@@ -34,7 +34,10 @@ const int VIEWPORT_X      = 0,
 
 const char  V_SHADER_PATH[]          = "shaders/vertex_textured.glsl",
             F_SHADER_PATH[]          = "shaders/fragment_textured.glsl",
-            PLAYER_SPRITE_FILEPATH[] = "assets/rectangle.png";
+            PLAYER_SPRITE_FILEPATH[] = "assets/rectangle.png",
+            WIN1_SPRITE_FILEPATH[] = "assets/winner-1.png",
+WIN2_SPRITE_FILEPATH[] = "assets/winner-2.png";
+
 
 const float MILLISECONDS_IN_SECOND     = 1000.0;
 const float MINIMUM_COLLISION_DISTANCE = 1.0f;
@@ -53,10 +56,14 @@ glm::mat4     g_view_matrix,
               g_paddle1_matrix,
               g_projection_matrix,
               g_paddle2_matrix,
-              g_ball_matrix;
+              g_ball_matrix,
+              g_player1_win_matrix,
+              g_player2_win_matrix;
 
 GLuint g_paddle_texture_id,
-       g_other_texture_id;
+       g_other_texture_id,
+       g_player1_win_id,
+       g_player2_win_id;
 
 const glm::vec3 PADDLE_INIT_SCAL = glm::vec3(0.8f,0.2f,0.0f);
 const glm::vec3 PADDLE1_INIT_POS = glm::vec3(-4.8f,0.0f,1.0f);
@@ -82,10 +89,13 @@ bool left = false,
     up = true,
     down = false;
 
+
+
 bool start = false;
 float g_player_speed = 4.0f;
 float ball_speed = 2.0f;
-
+bool player1_wins = false;
+bool player2_wins = false;
 GLuint load_texture(const char* filepath)
 {
     int width, height, number_of_components;
@@ -136,6 +146,14 @@ void initialise()
     
     g_ball_matrix = glm::mat4(1.0f);
     
+    g_player1_win_matrix = glm::mat4(1.0f);
+    g_player1_win_matrix =  glm::scale(g_player1_win_matrix, glm::vec3(3.0f));
+    
+    g_player2_win_matrix = glm::mat4(1.0f);
+    g_player2_win_matrix =  glm::scale(g_player2_win_matrix, glm::vec3(3.0f));
+//    g_player1_win_matrix = glm::translate(g_player1_win_matrix, glm::vec3(8.0f));
+//    g_player2_win_matrix = glm::translate(g_player2_win_matrix, glm::vec3(8.0f));
+    
 //    g_paddle2_matrix = glm::translate(g_paddle2_matrix, glm::vec3(1.0f, 1.0f, 0.0f));
 //
 //    paddle2_position    += paddle2_movement;
@@ -145,6 +163,8 @@ void initialise()
     
     g_paddle_texture_id = load_texture(PLAYER_SPRITE_FILEPATH);
     g_other_texture_id  = load_texture(PLAYER_SPRITE_FILEPATH);
+    g_player1_win_id = load_texture(WIN1_SPRITE_FILEPATH);
+    g_player2_win_id = load_texture(WIN2_SPRITE_FILEPATH);
     
     g_shader_program.set_projection_matrix(g_projection_matrix);
     g_shader_program.set_view_matrix(g_view_matrix);
@@ -308,6 +328,7 @@ void paddle2_up_down(){
     }
     
 }
+
 bool check_collision_1(glm::vec3 &position_a, glm::vec3 &position_b, const glm::vec3 &init_pos)  //
 {                                                                   //
     // —————————————————  Distance Formula ————————————————————————
@@ -323,30 +344,13 @@ bool check_collision_1(glm::vec3 &position_a, glm::vec3 &position_b, const glm::
     }//
     // ———————————————————————————————————————————————————————————————— //
 }
-bool check_collision_2(glm::vec3 &position_a, glm::vec3 &position_b, const glm::vec3 &init_pos)  //
-{                                                                   //
-    // —————————————————  Distance Formula ————————————————————————
-    
-    float x_distance = fabs(position_a.x - init_pos.x) - ((BALL_INIT_SCAL.x*0.09 + PADDLE_INIT_SCAL.x * 0.15) / 2.0f);
-    float y_distance = fabs(position_a.y - position_b.y) - ((BALL_INIT_SCAL.y*2.5f + PADDLE_INIT_SCAL.y*2.5f) / 2.0f);
-//    std::cout << position_a.x <<" "<< init_pos.x << " \n";
-    std::cout << x_distance << " " << y_distance << " \n";
-//    std::cout << position_a.y << " " << position_b.y<< " \n";
-    if (x_distance < 0 && y_distance <= 0){
-        return true;
-    }
-    else{
-        return false;
-    }//
-    // ———————————————————————————————————————————————————————————————— //
-}
+
 
 
 void ball_direction(){
     ball_movement = glm::vec3(0.0f);
     
     if(check_collision_1(ball_position, paddle1_position, PADDLE1_INIT_POS)){
-        std::cout << "paddle1\n";
         right = false;
         left = true;
         if(paddle1_position.y >0.0f){
@@ -357,8 +361,7 @@ void ball_direction(){
             down = true;
         }
     }
-    else if(check_collision_2(ball_position, paddle2_position, PADDLE2_INIT_POS)){
-        std::cout << "paddle2\n";
+    else if(check_collision_1(ball_position, paddle2_position, PADDLE2_INIT_POS)){
         right = true;
         left = false;
         if(paddle2_position.y > 0.0f){
@@ -387,13 +390,20 @@ void ball_direction(){
         ball_movement.x = 1;
     }
     if(up){
-        
         ball_movement.y = 0.5;
     }else if(down){
         ball_movement.y = -0.5;
     }else{
-        
         ball_movement.y = 0.5;
+    }
+    if(ball_position.x < -5.0){
+        std::cout << "player 2 wins\n";
+        player2_wins = true;
+        
+    }
+    else if(ball_position.x > 5.0){
+        std::cout << "player 1 wins\n";
+        player1_wins = true;
     }
     
     
@@ -464,12 +474,19 @@ void render_paddle()
     draw_object(g_paddle1_matrix, g_paddle_texture_id);
     draw_object(g_paddle2_matrix, g_paddle_texture_id);
     draw_object(g_ball_matrix, g_other_texture_id);
+    if(player1_wins){
+        draw_object(g_player1_win_matrix, g_player1_win_id);
+    }else if(player2_wins){
+        draw_object(g_player2_win_matrix, g_player2_win_id);
+    }
+    
     
     glDisableVertexAttribArray(g_shader_program.get_position_attribute());
     glDisableVertexAttribArray(g_shader_program.get_tex_coordinate_attribute());
     
     SDL_GL_SwapWindow(g_display_window);
 }
+
 
 
 void shutdown() { SDL_Quit(); }
@@ -488,15 +505,15 @@ int main(int argc, char* argv[])
         }else{
             paddle2_up_down();
         }
-        if(start){
-            std::cout << "start";
+        if(start && !player1_wins && !player2_wins){
             ball_direction();
         }
-        
         
         update();
         render_paddle();
     }
+    
+    
     
     shutdown();
     return 0;
