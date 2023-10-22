@@ -220,33 +220,35 @@ void process_input()
     
     const Uint8 *key_state = SDL_GetKeyboardState(NULL);
 
+    if(!player1_wins && !player2_wins){
+        if (key_state[SDL_SCANCODE_UP] and !paddle1_at_top)
+        {
+            paddle1_movement.y = 1.0f;
+        }
+        else if (key_state[SDL_SCANCODE_DOWN] and !paddle1_at_bot)
+        {
+            paddle1_movement.y = -1.0f;
+        }
+        
+        if (glm::length(paddle1_movement) > 1.0f)
+        {
+            paddle1_movement = glm::normalize(paddle1_movement);
+        }
+        
+        if(paddle1_position.y > 3.0f){
+            paddle1_at_top = true;
+        }
+        else{
+            paddle1_at_top = false;
+        }
+        if(paddle1_position.y < -2.9f){
+            paddle1_at_bot = true;
+        }
+        else{
+            paddle1_at_bot = false;
+        }
+    }
     
-    if (key_state[SDL_SCANCODE_UP] and !paddle1_at_top)
-    {
-        paddle1_movement.y = 1.0f;
-    }
-    else if (key_state[SDL_SCANCODE_DOWN] and !paddle1_at_bot)
-    {
-        paddle1_movement.y = -1.0f;
-    }
-    
-    if (glm::length(paddle1_movement) > 1.0f)
-    {
-        paddle1_movement = glm::normalize(paddle1_movement);
-    }
-    
-    if(paddle1_position.y > 3.0f){
-        paddle1_at_top = true;
-    }
-    else{
-        paddle1_at_top = false;
-    }
-    if(paddle1_position.y < -2.9f){
-        paddle1_at_bot = true;
-    }
-    else{
-        paddle1_at_bot = false;
-    }
 }
 
 void process_input_2()
@@ -287,52 +289,57 @@ void process_input_2()
     
     const Uint8 *key_state = SDL_GetKeyboardState(NULL);
 
+    if(!player1_wins && !player2_wins){
+        if (key_state[SDL_SCANCODE_W] and !paddle2_at_top)
+        {
+            paddle2_movement.y = 1.0f;
+        }
+        else if (key_state[SDL_SCANCODE_S] and !paddle2_at_bot)
+        {
+            paddle2_movement.y = -1.0f;
+        }
+        if(key_state[SDL_SCANCODE_T]){
+            allow_movement = !allow_movement;
+        }
+        
+        if (glm::length(paddle2_movement) > 1.0f)
+        {
+            paddle2_movement = glm::normalize(paddle2_movement);
+        }
+        
+        if(paddle2_position.y > 3.0f){
+            paddle2_at_top = true;
+        }
+        else{
+            paddle2_at_top = false;
+        }
+        if(paddle2_position.y < -2.9f){
+            paddle2_at_bot = true;
+        }
+        else{
+            paddle2_at_bot = false;
+        }
+    }
     
-    if (key_state[SDL_SCANCODE_W] and !paddle2_at_top)
-    {
-        paddle2_movement.y = 1.0f;
-    }
-    else if (key_state[SDL_SCANCODE_S] and !paddle2_at_bot)
-    {
-        paddle2_movement.y = -1.0f;
-    }
-    if(key_state[SDL_SCANCODE_T]){
-        allow_movement = !allow_movement;
-    }
-    
-    if (glm::length(paddle2_movement) > 1.0f)
-    {
-        paddle2_movement = glm::normalize(paddle2_movement);
-    }
-    
-    if(paddle2_position.y > 3.0f){
-        paddle2_at_top = true;
-    }
-    else{
-        paddle2_at_top = false;
-    }
-    if(paddle2_position.y < -2.9f){
-        paddle2_at_bot = true;
-    }
-    else{
-        paddle2_at_bot = false;
-    }
 
 }
 
 void paddle2_up_down(){
-    if(go_up){
-        paddle2_movement.y = 1.0f;
+    if(!player1_wins && !player2_wins){
+        if(go_up){
+            paddle2_movement.y = 1.0f;
+        }
+        else{
+            paddle2_movement.y = -1.0f;
+        }
+        if(paddle2_position.y >3.0f){
+            go_up = false;
+        }
+        else if(paddle2_position.y < -2.9f){
+            go_up = true;
+        }
     }
-    else{
-        paddle2_movement.y = -1.0f;
-    }
-    if(paddle2_position.y >3.0f){
-        go_up = false;
-    }
-    else if(paddle2_position.y < -2.9f){
-        go_up = true;
-    }
+    
     
 }
 
@@ -428,7 +435,7 @@ void ball_direction(){
         std::cout << "player 1 wins\n";
         player1_wins = true;
     }
-    std::cout << "bool up or down:" << bool_rand_up << "\n";
+    
     
     
     
@@ -537,6 +544,7 @@ int main(int argc, char* argv[])
         update();
         render_paddle();
     }
+        
     
     shutdown();
     return 0;
