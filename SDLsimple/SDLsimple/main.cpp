@@ -348,6 +348,8 @@ void paddle2_up_down(){
         else if(paddle2_position.y < -2.9f){
             go_up = true;
         }
+    }else{
+        paddle2_movement.y = 0.0f;
     }
     
     
